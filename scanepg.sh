@@ -2,7 +2,7 @@
 
 # scanepg.sh - EPG des VDR aktualisieren
 # Author MegaV0lt
-VERSION=170310
+VERSION=210329
 
 # --- Variablen ---
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
@@ -19,12 +19,12 @@ declare -a SVDRPCHANNELS TRANSPONDERLISTE   # Array's
 # --- Funktionen ---
 f_log() {                                     # Gibt die Meldung auf der Konsole und im Syslog aus
   logger -t "${SELF_NAME%.*}" "$*"
-  [[ -n "$LOG" ]] && echo "$(date +'%F %T') => $*" >> "$LOG"  # Zusätzlich in Datei schreiben
+  [[ -n "$LOG" ]] && printf '%(%F %T)T %s\n' "$*" >> "$LOG"  # Zusätzlich in Datei schreiben
   # echo "$*"  # Zusätzlich auf der Konsole
 }
 
 # --- Start ---
-f_log "$(date +'%F %R') - $SELF_NAME #${VERSION} Start"
+f_log "$SELF_NAME #${VERSION} Start"
 
 if [[ ! -e "$CHANNELS_CONF" ]] ; then
    f_log "$CHANNELS_CONF nicht gefunden!" >&2
@@ -42,7 +42,7 @@ for i in "${!MAPFILE[@]}" ; do
     continue
   fi
   ((cnt+=1))  # Zähler für Kanalanzahl
-  IFS=':' ; TMP=(${MAPFILE[i]}) ; unset -v 'IFS' # In Array kopieren (Trennzeichen ist ":")
+  IFS=':' read -r -a TMP <<< ${MAPFILE[i]}  # In Array kopieren (Trennzeichen ist ":")
   TRANSPONDER="${TMP[1]}-${TMP[2]}-${TMP[3]}"  # Frequenz-Parameter-Quelle
   if [[ "${TRANSPONDERLISTE[@]}" =~ $TRANSPONDER ]] ; then  # Transponder schon vorhanden?
     # f_log 'Transponder schon vorhanden'
