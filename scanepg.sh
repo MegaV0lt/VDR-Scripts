@@ -19,7 +19,7 @@ declare -a SVDRPCHANNELS TRANSPONDERLISTE   # Array's
 # --- Funktionen ---
 f_log() {                                     # Gibt die Meldung auf der Konsole und im Syslog aus
   logger -t "${SELF_NAME%.*}" "$*"
-  [[ -n "$LOG" ]] && printf '%(%F %T)T %s\n' "$*" >> "$LOG"  # Zusätzlich in Datei schreiben
+  [[ -n "$LOG" ]] && printf '%(%F %T)T %s\n' -1 "$*" >> "$LOG"  # Zusätzlich in Datei schreiben
   # echo "$*"  # Zusätzlich auf der Konsole
 }
 
