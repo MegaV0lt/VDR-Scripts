@@ -15,10 +15,10 @@ ZAPDELAY=(10 15)                            # Wartezeit in Sekunden bis zum neue
 BACKUPCHANNEL='n-tv'                        # Kanal nach dem Scan, falls das Auslesen scheitert
 #LOG="/var/log/${SELF_NAME%.*}.log"          # Log (Auskommentieren, wenn kein extra Log gewünscht)
 MAXLOGSIZE=$((10*1024))                     # In Bytes
-SCAN_MODE'streamdev'                       # Methode für Kanalscan, alternativ "svdrp"
-#SCAN_MODE='svdrp'                            # Methode für Kanalscan, alternativ "svdrp"
-#STREAMHOST='localhost'                      # Host für den Streamdev-Server
-STREAMHOST='10.75.25.22'                      # Host für den Streamdev-Server
+SCAN_MODE='streamdev'                       # Methode für Kanalscan, alternativ 'svdrp'
+#SCAN_MODE='svdrp'                            
+#STREAMHOST='localhost'                     # Host für den Streamdev-Server
+STREAMHOST='10.75.25.22'                     
 STREAMPORT=3000                             # Port für den Streamdev-Server
 
 declare -a CHANNELDATA                      # Arrays
