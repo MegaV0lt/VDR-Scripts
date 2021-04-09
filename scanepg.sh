@@ -67,7 +67,7 @@ while read -r channel ; do
     # Kanal-ID (S19.2E-133-14-123)
     f_log "Neuer Transponder: $TRANSPONDER -> ${TMP[3]}-${TMP[10]}-${TMP[11]}-${TMP[9]} #${TMP[8]:0:3} (${TMP[0]})"
     TRANSPONDERLISTE[$TRANSPONDER]=1
-    : "${TMP[0]%;*}"  # Kanalname ohne Provider
+    TMP[0]="${TMP[0]%;*}"  # Kanalname ohne Provider
     # Kanalnummer:Name:Kanal-ID:CAID
     CHANNELDATA+=("${cnt}:${TMP[0]%,*}:${TMP[3]}-${TMP[10]}-${TMP[11]}-${TMP[9]}:${TMP[8]}")  # TMP[8]=CAID (0 wenn unverschlüsselt)
   fi
