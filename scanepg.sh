@@ -15,10 +15,10 @@ ZAPDELAY=(10 15)                            # Wartezeit in Sekunden bis zum neue
 BACKUPCHANNEL='n-tv'                        # Kanal nach dem Scan, falls das Auslesen scheitert
 #LOG="/var/log/${SELF_NAME%.*}.log"          # Log (Auskommentieren, wenn kein extra Log gewünscht)
 MAXLOGSIZE=$((10*1024))                     # In Bytes
-SCAN_MODE="streamdev"                       # Methode für Kanalscan, alternativ "svdrp"
-#SCAN_MODE="svdrp"                            # Methode für Kanalscan, alternativ "svdrp"
-#STREAMHOST="localhost"                      # Host für den Streamdev-Server
-STREAMHOST="10.75.25.22"                      # Host für den Streamdev-Server
+SCAN_MODE'streamdev'                       # Methode für Kanalscan, alternativ "svdrp"
+#SCAN_MODE='svdrp'                            # Methode für Kanalscan, alternativ "svdrp"
+#STREAMHOST='localhost'                      # Host für den Streamdev-Server
+STREAMHOST='10.75.25.22'                      # Host für den Streamdev-Server
 STREAMPORT=3000                             # Port für den Streamdev-Server
 
 declare -a CHANNELDATA                      # Arrays
@@ -34,7 +34,7 @@ f_log() {                                   # Gibt die Meldung auf der Konsole u
 # Kanalumschaltung mit svdrp
 f_svdrp_channelswitch() {
   local zapdelay="${ZAPDELAY[0]}" channel="$1" caid="$2"
-  [[ "$caid" != "0" ]] && zapdelay="${ZAPDELAY[1]}"
+  [[ "$caid" != '0' ]] && zapdelay="${ZAPDELAY[1]}"
   $SVDRPSEND CHAN "$channel"
   sleep "$zapdelay"
 }
@@ -42,7 +42,7 @@ f_svdrp_channelswitch() {
 # Kanalumschaltung mit streamdev
 f_streamdev_channelswitch() {
   local zapdelay="${ZAPDELAY[0]}" channel="$1" caid="$2"
-  [[ "$caid" != "0" ]] && zapdelay="${ZAPDELAY[1]}"
+  [[ "$caid" != '0' ]] && zapdelay="${ZAPDELAY[1]}"
   timeout --foreground "$zapdelay" wget -q -O "/dev/null" "http://${STREAMHOST}:${STREAMPORT}/TS/${channel}.ts" 2>&1
 }
 
@@ -76,7 +76,6 @@ done < <(grep -av "^:" ${CHANNELS_CONF} | tail -n +1 | head -n "$MAXCHANNELS")
 # Statistik
 f_log "=> $cnt channels eingelesen. (${CHANNELS_CONF})"
 f_log "=> ${#TRANSPONDERLISTE[@]} Transponder"
-f_log "=> ${#CHANNELDATA[@]} channels"
 
 if [[ "$SCAN_MODE" == 'svdrp' ]] ; then
   # Aktuellen Kanal speichern
