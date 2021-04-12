@@ -1,9 +1,14 @@
-#!/bin/bash
+#!/bin/env bash
 
 # scanepg.sh - EPG des VDR aktualisieren
+#
+# Das Skript liest die ersten MAXCHANNELS der channles.conf ein und schaltet auf den Kanal falls
+#+es sich um einen noch nicht getunten Transponder handelt.
+# Für Systeme mit nur einem Tuner geeignet, wenn man den Zeitpunkt selbst betimmen will.
+#
 # Author MegaV0lt
 # Thanks to seahawk1986 for streamdev solution
-VERSION=210409
+VERSION=210412
 
 # --- Variablen ---
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
@@ -16,19 +21,16 @@ BACKUPCHANNEL='n-tv'                        # Kanal nach dem Scan, falls das Aus
 #LOG="/var/log/${SELF_NAME%.*}.log"          # Log (Auskommentieren, wenn kein extra Log gewünscht)
 MAXLOGSIZE=$((10*1024))                     # In Bytes
 SCAN_MODE='streamdev'                       # Methode für Kanalscan, alternativ 'svdrp'
-#SCAN_MODE='svdrp'                            
+#SCAN_MODE='svdrp'
 #STREAMHOST='localhost'                     # Host für den Streamdev-Server
-STREAMHOST='10.75.25.22'                     
+STREAMHOST='10.75.25.22'
 STREAMPORT=3000                             # Port für den Streamdev-Server
-
-declare -a CHANNELDATA                      # Arrays
-declare -A TRANSPONDERLISTE                 # assoziative Arrays
+declare -A TRANSPONDERLISTE                 # Assoziatives Array Für Transponder/Kanaldaten
 
 # --- Funktionen ---
-f_log() {                                   # Gibt die Meldung auf der Konsole und im Syslog aus
-  logger -t "${SELF_NAME%.*}" "$*"
+f_log() {                                   # Gibt die Meldung auf der Konsole oder im Syslog aus
   [[ -n "$LOG" ]] && printf '%(%F %T)T %s\n' -1 "$*" >> "$LOG"  # Zusätzlich in Datei schreiben
-  [[ -t 1 ]] && echo "$*"  # Zusätzlich auf der Konsole
+  [[ -t 1 ]] && echo "$*" || logger -t "${SELF_NAME%.*}" "$*"   # Syslog oder auf Konsole
 }
 
 # Kanalumschaltung mit svdrp
@@ -65,16 +67,15 @@ while read -r channel ; do
   if [[ -z "${TRANSPONDERLISTE[$TRANSPONDER]}" ]] ; then  # Transponder noch nicht vorhanden?
     # 0name 1frequenz 2parameter 3quelle 4symbolrate 5vpid 6apid 7tpid 8caid 9sid 10nid 11tid 12rid
     # Kanal-ID (S19.2E-133-14-123)
-    f_log "Neuer Transponder: $TRANSPONDER -> ${TMP[3]}-${TMP[10]}-${TMP[11]}-${TMP[9]} #${TMP[8]:0:3} (${TMP[0]})"
-    TRANSPONDERLISTE[$TRANSPONDER]=1
     TMP[0]="${TMP[0]%;*}"  # Kanalname ohne Provider
+    f_log "Neuer Transponder: $TRANSPONDER -> ${TMP[3]}-${TMP[10]}-${TMP[11]}-${TMP[9]} #${TMP[8]:0:3} (${TMP[0]})"
     # Kanalnummer:Name:Kanal-ID:CAID
-    CHANNELDATA+=("${cnt}:${TMP[0]%,*}:${TMP[3]}-${TMP[10]}-${TMP[11]}-${TMP[9]}:${TMP[8]}")  # TMP[8]=CAID (0 wenn unverschlüsselt)
+    TRANSPONDERLISTE[$TRANSPONDER]="${cnt}:${TMP[0]%,*}:${TMP[3]}-${TMP[10]}-${TMP[11]}-${TMP[9]}:${TMP[8]}"
   fi
 done < <(grep -av "^:" ${CHANNELS_CONF} | tail -n +1 | head -n "$MAXCHANNELS")
 
 # Statistik
-f_log "=> $cnt channels eingelesen. (${CHANNELS_CONF})"
+f_log "=> $cnt Kanaele eingelesen. (${CHANNELS_CONF})"
 f_log "=> ${#TRANSPONDERLISTE[@]} Transponder"
 
 if [[ "$SCAN_MODE" == 'svdrp' ]] ; then
@@ -83,7 +84,7 @@ if [[ "$SCAN_MODE" == 'svdrp' ]] ; then
 fi
 
 # Kanäle durchzappen
-for channel in "${CHANNELDATA[@]}" ; do
+for channel in "${TRANSPONDERLISTE[@]}" ; do
   IFS=':' read -r -a channeldata <<< "$channel"
   f_log "=> Schalte auf Kanal: ${channeldata[0]} ${channeldata[1]} (${channeldata[2]}) CAID: ${channeldata[3]}"
   $ZAPCMD "${channeldata[2]}" "${channeldata[3]}"  # Kanal-ID CAID
@@ -104,3 +105,4 @@ if [[ -e "$LOG" ]] ; then  # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat -c %s "$LOG")"
   [[ $FILESIZE -ge $MAXLOGSIZE ]] && mv --force "$LOG" "${LOG}.old"
 fi
+
