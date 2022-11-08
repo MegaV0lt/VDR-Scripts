@@ -138,7 +138,7 @@ case "$1" in
     #  string "/video/The_Magicians/Von_alten_Göttern_und_Monstern__(S04E11)/2022-06-26.20.53.26-0.rec"
     #boolean true
     read -r -a STATUS_STRING <<< "${DBUS_STATUS[2]}"
-    if [[ "${STATUS_STRING[1]}" =~ $2 ]] ; then   # string "" wenn nichts abgespielt wird
+    if [[ "${STATUS_STRING[2]}" =~ $2 ]] ; then   # string "" wenn nichts abgespielt wird
       f_logger "Recording $REC_NAME is cuttently playing. Exit!"
       exit
     fi
