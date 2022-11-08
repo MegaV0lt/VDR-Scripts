@@ -3,8 +3,10 @@
 # vdr_checkrec.sh
 # Skript um unvollständige Aufnahmen zu kennzeichnen  [67,5%]
 # Zusätzlich Aufnahmen von TVScraper mit SxxExx versehen  (S01E01)
-#  yavdr_funcs.sh für's Loggen
-#  vdr_rec_mesg.sh für das .rec-Flag
+#   yavdr_funcs.sh für's Loggen
+#   vdr_rec_mesg.sh für das .rec-Flag
+# Skript wird vom recording_hook aufgerufen (vdr_record.sh):
+#   screen -dm sh -c "/etc/vdr.d/scripts/vdr_rec_msg.sh $1 \"$2\""
 # ---
 
 # VERSION=221108
