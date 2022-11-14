@@ -120,23 +120,19 @@ case "$1" in
       if [[ ! "$REC_NAME" =~ $re && -n "$SE" ]] ; then
         NEW_REC_NAME="${REC_NAME}__$SE"  # SxxExx hinzufügen
         f_logger "Adding $SE to ${REC_NAME} -> $NEW_REC_NAME"
-      else
-        NEW_REC_NAME="$REC_NAME"
       fi
-    else
-      NEW_REC_NAME="$REC_NAME"
     fi
 
     if [[ "$ADD_UNCOMPLETE" == 'true' && "${RECORDED%.*}" -lt 99 ]] ; then
-      echo "$RECORDED" > "$REC_LEN"        # Speichern der Aufnahmelänge
-      NEW_REC_NAME+="_[${RECORDED/./,}%]"  # Unvollständige Aufnahme
+      echo "$RECORDED" > "$REC_LEN"                                  # Speichern der Aufnahmelänge
+      NEW_REC_NAME="${NEW_REC_NAME:-$REC_NAME}__[${RECORDED/./,}%]"  # Unvollständige Aufnahme
     fi
 
     # Statistik und Log
     f_logger "Recorded ${RECORDED}% of ${REC_NAME}. ${REC_ERRORS:-'?'} error(s) detected by VDR"
     printf '[%(%F %R)T] %b\n' -1 "${RECORDED}% of $REC_NAME with ${REC_ERRORS:-'?'} error(s) detected by VDR recorded" >> "${VIDEO}/checkrec.log"
 
-    [[ "$REC_NAME" == "$NEW_REC_NAME" ]] && exit  # Keine weitere Aktion nötig
+    [[ "$REC_NAME" == "${NEW_REC_NAME:=$REC_NAME}" ]] && exit  # Keine weitere Aktion nötig
 
     while [[ -e "$MARKAD_PID" ]] ; do  # Warten, bis markad beendet ist
       #f_logger 'Waiting for markad to finish…'
