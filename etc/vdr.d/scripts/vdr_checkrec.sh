@@ -1,6 +1,7 @@
 #!/bin/bash
 # ----
 # vdr_checkrec.sh
+#
 # Skript um unvollständige Aufnahmen zu kennzeichnen  [67,5%]
 # Zusätzlich Aufnahmen von TVScraper mit SxxExx versehen  (S01E01)
 #   yavdr_funcs.sh für's Loggen
@@ -9,10 +10,15 @@
 #   screen -dm sh -c "/etc/vdr.d/scripts/vdr_rec_msg.sh $1 \"$2\""
 # ---
 
-# VERSION=221108
+# VERSION=221114
 
 source /_config/bin/yavdr_funcs.sh
 
+# Einstellungen
+ADD_SE='true'                         # (SxxExx) anhängen, wenn in der Beschreibung gefunden
+ADD_UNCOMPLETE='true'                 # [67,5%] anhängen, wenn aufnahme weniger als 99% lang
+
+# Variablen
 REC_DIR="${2%/}"                      # Sicher stellen, dass es ohne / am Ende ist
 REC_FLAG="${REC_DIR}/.rec"            # Kennzeichnung für laufende Aufnahme (vdr_rec_msg.sh)
 REC_INDEX="${REC_DIR}/index"          # VDR index Datei für die Länge der Aufnahme
@@ -75,16 +81,15 @@ case "$1" in
     # VDR info Datei einlesen und Werte ermitteln
     mapfile -t VDR_INFO < "$REC_INFO"  # Info-Datei vom VDR einlesen
     for line in "${VDR_INFO[@]}" ; do
-      #[[ "$line" =~ ^D' ' ]] && DESCRIPTION="$line"      # Beschreibung
+      if [[ "$line" =~ ^D' ' ]] ; then  # Beschreibung
+        re_s='\|Staffel: ([0-9]+)' ; re_e='\|Episode: ([0-9]+)'
+        [[ "$line" =~ $re_s ]] && printf -v STAFFEL '%02d' "${BASH_REMATCH[1]}"
+        [[ "$line" =~ $re_e ]] && printf -v EPISODE '%02d' "${BASH_REMATCH[1]}"
+      fi  # ^D
       [[ "$line" =~ ^F' ' ]] && FRAMERATE="${line#F }"   # 25
       [[ "$line" =~ ^O' ' ]] && REC_ERRORS="${line#O }"  # 768
-      if [[ "$line" =~ ^@' ' ]] ; then                   # AUX-Feld
-        re='<causedBy>.*</causedBy>' ; re2='\(S.*E.*\)'
-        if [[ "$line" =~ $re ]] ; then
-          [[ "${BASH_REMATCH[0]}" =~ $re2 ]] && SE="${BASH_REMATCH[0]}"  # (SxxExx)
-        fi
-      fi  # ^@' '
     done
+    [[ -n "$STAFFEL" && -n "$EPISODE" ]] && SE="(S${STAFFEL}E${EPISODE})"  # (SxxExx)
     [[ -z "$FRAMERATE" ]] && { f_logger 'Error: FRAMERATE not detected!' ; exit ;}
 
     # Größe der index Datei ermitteln und mit Timerlänge vergleichen (index/8/Framrate=Aufnahmelänge in Sekunden)
@@ -110,14 +115,19 @@ case "$1" in
     REC_NAME="${REC_NAME#${VIDEO}/}"  # /video/ am Anfang entfernen
     REC_DATE="${REC_DIR##*/}"         # 2022-06-26.20.53.26-0.rec
 
-    if [[ ! "$REC_NAME" =~ $re2 && -n "$SE" ]] ; then
-      NEW_REC_NAME="${REC_NAME}__$SE"  # SxxExx hinzufügen
-      f_logger "Adding $SE to ${REC_NAME} -> $NEW_REC_NAME"
+    if [[ "$ADD_SE" == 'true' ]] ; then
+      re='\(S.*E.*\)'
+      if [[ ! "$REC_NAME" =~ $re && -n "$SE" ]] ; then
+        NEW_REC_NAME="${REC_NAME}__$SE"  # SxxExx hinzufügen
+        f_logger "Adding $SE to ${REC_NAME} -> $NEW_REC_NAME"
+      else
+        NEW_REC_NAME="$REC_NAME"
+      fi
     else
       NEW_REC_NAME="$REC_NAME"
     fi
 
-    if [[ "${RECORDED%.*}" -lt 99 ]] ; then
+    if [[ "$ADD_UNCOMPLETE" == 'true' && "${RECORDED%.*}" -lt 99 ]] ; then
       echo "$RECORDED" > "$REC_LEN"        # Speichern der Aufnahmelänge
       NEW_REC_NAME+="_[${RECORDED/./,}%]"  # Unvollständige Aufnahme
     fi
