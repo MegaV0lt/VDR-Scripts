@@ -38,7 +38,6 @@ case "$1" in
     fi
 
     until [[ -e "$TIMER_FLAG" ]] ; do  # Warte auf .timer vom VDR
-      #f_logger 'Waiting for timer-flag…'
       sleep 10 ; ((cnt++))
       [[ $cnt -gt 3 ]] && break  # Max. 30 Sekunden
     done
@@ -59,20 +58,19 @@ case "$1" in
 
     # Ermittelte Werte für später Speichern
     { echo "VDRTIMER=$VDRTIMER" ; echo "VDR_TIMER=\"${VDR_TIMER[*]}\""
-      #echo "TIMER_START=$TIMER_START" ; echo "TIMER_STOP=$TIMER_STOP"
       echo "START=$START" ; echo "STOP=$STOP"
       echo "TIMER_LENGTH=$TIMER_LENGTH"
     } > "$REC_INFOS"  # .checkrec
   ;;
   after)
-    while [[ -e "$REC_FLAG" ]] ; do  # Warten, bis Aufnahme beendet ist (vdr_rec_mesg.sh)
-      f_logger 'Waiting for end of recording…'
+    while [[ -e "$REC_FLAG" ]] ; do  # Warten, bis Aufnahme beendet ist (vdr_rec_msg.sh)
+      f_logger "${REC_DIR}: Waiting for end of recording…"
       sleep 10 ; ((cnt++))      # Warten bis Aufnahme beendet ist
       [[ $cnt -gt 3 ]] && exit  # Max. 30 Sekunden
     done
     if [[ -e "$REC_INFOS" ]] ; then  # Daten laden oder abbrechen wenn nicht vorhanden
       source "$REC_INFOS"
-      [[ -z "$TIMER_LENGTH" ]] && { f_logger 'Error: TIMER_LENGTH not detected!' ; exit ;}
+      [[ -z "$TIMER_LENGTH" ]] && { f_logger "${REC_DIR}: Error! TIMER_LENGTH not detected!" ; exit ;}
     else
       f_logger "Error: File $REC_INFOS not found!"
       exit
@@ -90,7 +88,7 @@ case "$1" in
       [[ "$line" =~ ^O' ' ]] && REC_ERRORS="${line#O }"  # 768
     done
     [[ -n "$STAFFEL" && -n "$EPISODE" ]] && SE="(S${STAFFEL}E${EPISODE})"  # (SxxExx)
-    [[ -z "$FRAMERATE" ]] && { f_logger 'Error: FRAMERATE not detected!' ; exit ;}
+    [[ -z "$FRAMERATE" ]] && { f_logger "${REC_DIR}: Error! FRAMERATE not detected!" ; exit ;}
 
     # Größe der index Datei ermitteln und mit Timerlänge vergleichen (index/8/Framrate=Aufnahmelänge in Sekunden)
     INDEX_SIZE=$(stat -c %s "$REC_INDEX") ; [[ -z "$INDEX_SIZE" ]] && { f_logger 'Error: INDEX_SIZE not detected!' ; exit ;}  # Dateigröße in Bytes
@@ -105,15 +103,15 @@ case "$1" in
       RECORDED="${RECORDED:0:${#RECORDED}-1}.${R_RIGHT}"  # 67.5
     fi
 
-    { echo "FRAMERATE=$FRAMERATE" ; echo "REC_ERRORS=$REC_ERRORS"
-      echo "INDEX_SIZE=$INDEX_SIZE" ; echo "REC_LENGTH=$REC_LENGTH"
-      echo "RECORDED=$RECORDED"
-      echo "SE=$SE"
-    } >> "$REC_INFOS"  # Für Debug-Zwecke
-
     REC_NAME="${REC_DIR%/*}"          # Verzeichnis ohne /2022-06-26.20.53.26-0.rec
     REC_NAME="${REC_NAME#${VIDEO}/}"  # /video/ am Anfang entfernen
     REC_DATE="${REC_DIR##*/}"         # 2022-06-26.20.53.26-0.rec
+
+    { echo "FRAMERATE=$FRAMERATE"   ; echo "REC_ERRORS=$REC_ERRORS"
+      echo "INDEX_SIZE=$INDEX_SIZE" ; echo "REC_LENGTH=$REC_LENGTH"
+      echo "RECORDED=$RECORDED"     ; echo "SE=$SE"
+      echo "REC_NAME=$REC_NAME"     ; echo "REC_DATE=$REC_DATE"
+    } >> "$REC_INFOS"  # Für Debug-Zwecke
 
     if [[ "$ADD_SE" == 'true' ]] ; then
       re='\(S.*E.*\)'
@@ -130,12 +128,12 @@ case "$1" in
 
     # Statistik und Log
     f_logger "Recorded ${RECORDED}% of ${REC_NAME}. ${REC_ERRORS:-'?'} error(s) detected by VDR"
-    printf '[%(%F %R)T] %b\n' -1 "${RECORDED}% of $REC_NAME with ${REC_ERRORS:-'?'} error(s) detected by VDR recorded" >> "${VIDEO}/checkrec.log"
+    printf '[%(%F %R)T] %b\n' -1 "${RECORDED}% of $REC_NAME with ${REC_ERRORS:-'?'} error(s) detected by VDR recorded" \
+      >> "${VIDEO}/checkrec.log"
 
     [[ "$REC_NAME" == "${NEW_REC_NAME:=$REC_NAME}" ]] && exit  # Keine weitere Aktion nötig
 
     while [[ -e "$MARKAD_PID" ]] ; do  # Warten, bis markad beendet ist
-      #f_logger 'Waiting for markad to finish…'
       sleep 30
     done
 
@@ -146,7 +144,7 @@ case "$1" in
     #  string "/video/The_Magicians/Von_alten_Göttern_und_Monstern__(S04E11)/2022-06-26.20.53.26-0.rec"
     #boolean true
     read -r -a STATUS_STRING <<< "${DBUS_STATUS[2]}"
-    if [[ "${STATUS_STRING[2]}" =~ $2 ]] ; then   # string "" wenn nichts abgespielt wird
+    if [[ "${STATUS_STRING[1]}" =~ $2 ]] ; then   # string "" wenn nichts abgespielt wird
       f_logger "Recording $REC_NAME is cuttently playing. Exit!"
       exit
     fi
@@ -158,7 +156,7 @@ case "$1" in
       if mv "$REC_DIR" "${VIDEO}/${NEW_REC_NAME}/${REC_DATE}" ; then
         touch "${VIDEO}/.update"   # Aufnahmen neu einlesen
       else
-        f_logger "Error: Renaming of recording $REC_DIR -> ${VIDEO}/${NEW_REC_NAME}/${REC_DATE} failed!"
+        f_logger "Error: Renaming of $REC_DIR -> ${VIDEO}/${NEW_REC_NAME}/${REC_DATE} failed!"
       fi  # mv
     fi  # -d REC_DIR
     ;;
