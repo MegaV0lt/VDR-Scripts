@@ -1,13 +1,24 @@
 #!/bin/bash
 # ---
-# vdr_rec_msg.sh
+# vdr_rec_msg.sh (Standalone)
 # Skript dient zur Anzeige von "Aufnahme"- und "Beendet"-Meldugen
-# ---
+# 
+# Skript wird vom recording_hook aufgerufen (z. B. vdr_record.sh)
+# Aufruf bei 'startet' und 'after':
+#   screen -dm sh -c "/etc/vdr.d/scripts/vdr_rec_msg.sh $1 \"$2\""
 
-# VERSION=221103
+# VERSION=230518
 
-source /_config/bin/yavdr_funcs.sh
+# Variablen
+VIDEO='/video'
+SVDRPSEND="$(type -p svdrpsend)"
 
+# Funktionen
+f_logger() {
+  logger -t yaVDR "vdr_rec_msg: $*"
+}
+
+# Start
 [[ "${VIDEO: -1}" != '/' ]] && VIDEO+='/'
 REC="$2"  # Aufnahme-Pfad
 
@@ -88,5 +99,5 @@ esac
 
 if [[ -n "$MESG" ]] ; then  # Meldung ausgeben
   sleep 0.25
-  f_logger -o "$MESG"
+  "$SVDRPSEND" "$MESG"
 fi
